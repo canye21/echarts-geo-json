@@ -66,8 +66,7 @@ let loopHandle = async (adcode) => {
             }
         }
         geo.features = features;
-        const encodeGeo = parser.encode(geo);
-        fs.writeFile(`json/${adcode}.json`, JSON.stringify(encodeGeo), (err) => {
+        fs.writeFile(`json/${adcode}.json`, JSON.stringify(geo), (err) => {
             if (err) {
                 return console.log(err);
             }
@@ -81,6 +80,33 @@ let loopHandle = async (adcode) => {
     }
 };
 
+let loopProvinceHandle = async (adcode) => {
+    const district = await serachFromAMap(adcode, false);
+    if (district) {
+        console.log(`开始处理[${district.name}]的全部子行政单位`);
+        let geo = {};
+        geo.type = 'FeatureCollection';
+        
+        for (let child of district.districts) {
+            if (child.level == 'province') {
+                let features = [];
+                
+                const childDistrict = await serachFromAMap(child.adcode, true);
+                console.log(`开始处理[${childDistrict.name}]的行政边界数据`);
+                features.push(parseToFeature(childDistrict));
+
+                geo.features = features;
+                fs.writeFile(`jsonprovince/${child.adcode}.json`, JSON.stringify(geo), (err) => {
+                    if (err) {
+                        return console.log(err);
+                    }
+                });
+                console.log(`GeoJson文件[${child.adcode}.json]保存成功`);
+            }
+        }
+    }
+};
+
 (async () => {
-    await loopHandle('100000');
+    await loopProvinceHandle('100000');
 })();
